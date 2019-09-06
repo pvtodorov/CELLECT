@@ -19,7 +19,7 @@ def is_tool(name):
 ######################################## H2 #############################################
 #########################################################################################
 
-if config['ANALYSIS_MODE']['heritability']: # 'if statement' needed for HERITABILITY_INPUT to be defined. Consider default initialization of HERITABILITY_INPUT
+if config['ANALYSIS_TYPE']['heritability']: # 'if statement' needed for HERITABILITY_INPUT to be defined. Consider default initialization of HERITABILITY_INPUT
 	rule h2: 
 		'''
 		Estimates h2 for given sets of annotations 
@@ -54,6 +54,30 @@ if config['ANALYSIS_MODE']['heritability']: # 'if statement' needed for HERITABI
 			--print-cov --print-coefficients --print-delete-vals \
 			--out {params.file_out_prefix} &> {log}"
 
+	rule h2_parser:
+		'''
+		Parse h2 files together
+		Fucking not works....
+		'''
+		input:
+			lambda wildcards: expand("{{BASE_OUTPUT_DIR}}/out/h2/{{run_prefix}}__{gwas}__h2__{annotation}.{suffix}", 
+				gwas = GWAS_SUMSTATS.keys(), 
+				annotation = HERITABILITY_INPUT[wildcards.run_prefix],
+				suffix = ["results", "cov", "delete", "part_delete", "log"],)	
+			#expand("{{BASE_OUTPUT_DIR}}/out/h2/{{run_prefix}}__{gwas}__h2__{{annotation}}.{suffix}", gwas = GWAS_SUMSTATS.keys(), suffix = ["results", "cov", "delete", "part_delete", "log"])
+			#"{BASE_OUTPUT_DIR}/out/h2/{run_prefix}____{gwas}__h2__{annotation}.{suffix}"
+		output:
+			"{BASE_OUTPUT_DIR}/results/{run_prefix}__heritability.csv"
+		conda: 
+			"../envs/cellectpy3.yml"
+		params:
+			run_prefix = '{run_prefix}',
+			BASE_OUTPUT_DIR = BASE_OUTPUT_DIR,
+			results_out_dir = '{BASE_OUTPUT_DIR}/results',
+			h2_dir = '{BASE_OUTPUT_DIR}/out/h2',
+			analysis_type = 'heritability'
+		script:
+			"../scripts/parse_results_ben.py"
 
 
 #########################################################################################
@@ -61,7 +85,7 @@ if config['ANALYSIS_MODE']['heritability']: # 'if statement' needed for HERITABI
 #########################################################################################
 
 
-# if config['ANALYSIS_MODE']['heritability_intervals']: 
+# if config['ANALYSIS_TYPE']['heritability_intervals']: 
 
 
 rule h2_interval_M: 
@@ -192,5 +216,4 @@ rule h2_interval_rscript:
 # 0.0354534348018723      0.00113298619206756     0.214741639556595       0.00132708163840661     1.07370559107702        0.00663539208285362     2.7158960368993e-27
 # 0.0292348058573656      0.0013806156620049      0.177075371596941       0.00708277648692335     0.885378842131785       0.0354139617978289      0.00148371877436259
 # 0.0131509795779308      0.00262523459741717     0.0796555519125901      0.0162441807658585      0.398276420747926       0.0812206308043398      4.77095371863701e-12
-
 

@@ -229,21 +229,23 @@ if (config['ANALYSIS_TYPE']['heritability_intervals']) and (not config['ANALYSIS
 
 
 list_target_files = []
+analysis_types_performed = []
 
 if config['ANALYSIS_TYPE']['prioritization']: 
+	tmp = "{BASE_OUTPUT_DIR}/results/prioritization.csv".format(BASE_OUTPUT_DIR = BASE_OUTPUT_DIR)
+	list_target_files.extend([tmp])
 	tmp = expand("{BASE_OUTPUT_DIR}/out/prioritization/{run_prefix}__{gwas}.cell_type_results.txt",
 				BASE_OUTPUT_DIR = BASE_OUTPUT_DIR,
 				run_prefix = RUN_PREFIXES,
 				gwas = list(GWAS_SUMSTATS.keys()))
 	list_target_files.extend(tmp)
-	tmp = "{BASE_OUTPUT_DIR}/results/prioritization.csv".format(BASE_OUTPUT_DIR = BASE_OUTPUT_DIR)
-	list_target_files.extend(tmp)
 
+	analysis_types_performed.extend(['prioritization'])
 
 
 if config['ANALYSIS_TYPE']['conditional']:
 	tmp = "{BASE_OUTPUT_DIR}/results/conditional.csv".format(BASE_OUTPUT_DIR = BASE_OUTPUT_DIR)
-	list_target_files.extend(tmp)
+	list_target_files.extend([tmp])
 	for prefix in CONDITIONAL_INPUT:
 		tmp = expand("{BASE_OUTPUT_DIR}/out/conditional/{run_prefix}__{gwas}__CONDITIONAL__{annotation_cond}.cell_type_results.txt",
 									run_prefix = prefix,
@@ -252,10 +254,13 @@ if config['ANALYSIS_TYPE']['conditional']:
 									annotation_cond = CONDITIONAL_INPUT[prefix])
 		list_target_files.extend(tmp)
 
+	analysis_types_performed.extend(['conditional'])
+
 if config['ANALYSIS_TYPE']['heritability']: 
-	tmp = "{BASE_OUTPUT_DIR}/results/heritability.csv".format(BASE_OUTPUT_DIR = BASE_OUTPUT_DIR)
-	list_target_files.extend(tmp)
 	for prefix in HERITABILITY_INPUT:
+		tmp = "{BASE_OUTPUT_DIR}/results/{run_prefix}__heritability.csv".format(BASE_OUTPUT_DIR = BASE_OUTPUT_DIR, run_prefix = prefix)
+		list_target_files.extend([tmp])
+
 		tmp = expand("{BASE_OUTPUT_DIR}/out/h2/{run_prefix}__{gwas}__h2__{annotation}.results",
 						run_prefix = prefix,
 						BASE_OUTPUT_DIR = BASE_OUTPUT_DIR,
@@ -264,10 +269,12 @@ if config['ANALYSIS_TYPE']['heritability']:
 						suffix = ["results", "cov", "delete", "part_delete", "log"])
 		list_target_files.extend(tmp)
 
+	analysis_types_performed.extend(['heritability'])
 
+		
 if config['ANALYSIS_TYPE']['heritability_intervals']: 
 	tmp = "{BASE_OUTPUT_DIR}/results/heritability_intervals.csv".format(BASE_OUTPUT_DIR = BASE_OUTPUT_DIR)
-	list_target_files.extend(tmp)
+	list_target_files.extend([tmp])
 	for prefix in HERITABILITY_INPUT:
 		tmp = expand('{BASE_OUTPUT_DIR}/out/h2/{run_prefix}__{gwas}__h2_intervals__{annotation}.{mode}.results_intervals',
 											run_prefix = prefix,
@@ -277,6 +284,7 @@ if config['ANALYSIS_TYPE']['heritability_intervals']:
 											mode=list(H2_INTERVAL_ARG_DICT.keys())),
 		list_target_files.extend(tmp)
 
+	analysis_types_performed.extend(['heritability_intervals'])
 
 ########################################################################################
 ################################### PIPELINE ##########################################
@@ -289,23 +297,7 @@ rule all:
 	Defines the final target files to be generated.
 	'''
 	input:
-		list_target_files
-
-rule parse_results:
-	"""
-	Generates {BASE_OUTPUT_DIR}/results/<analysis_type>.csv by parsing ALL output files in {BASE_OUTPUT_DIR}/out, 
-	All out/ files will be parsed, even if they where not generated in this run of the workflow
-	"""
-	output:
-		"{BASE_OUTPUT_DIR}/results/{analysis_type}.csv"
-	conda:
-		"envs/cellectpy3.yml"
-	params:
-		base_output_dir = BASE_OUTPUT_DIR
-		analysis_type = wildcards.analysis_type
-	script:
-		"scripts/parse_results.py"
-
+		list_target_files,
 
 rule make_multigenesets:
 	'''
@@ -666,8 +658,45 @@ if config['ANALYSIS_TYPE']['conditional']: # needed to ensure CONDITIONAL_INPUT 
 ################################### Load rules ##########################################
 ########################################################################################
 
-#if config['ANALYSIS_TYPE']['heritability']: # conditional include statement to speed up building dag. Not sure how effective it is.
-include: "rules/ldsc_h2.smk"
+if config['ANALYSIS_TYPE']['heritability']: # conditional include statement to speed up building dag. Not sure how effective it is.
+	include: "rules/ldsc_h2.smk"
 
+################################### parser ##########################################
 
+#result_files = list_target_files[:-len(analysis_types_performed)+1]
+
+#To avoid cyclic dependency (e.g. rule parse_results calling .csv files as both inputs AND outputs, we filter out the .csv)
+result_files = filter(lambda s: '.csv' not in s, list_target_files)
+
+rule parse_results:
+	"""
+	Generates {BASE_OUTPUT_DIR}/results/<analysis_type>.csv by parsing ALL output files in {BASE_OUTPUT_DIR}/out from this run.
+	"""
+	input:
+		result_files
+	output:
+		expand("{BASE_OUTPUT_DIR}/results/{analysis_type}.csv", BASE_OUTPUT_DIR = BASE_OUTPUT_DIR, analysis_type = analysis_types_performed)
+	params:
+		results_out_dir = '{BASE_OUTPUT_DIR}/results'.format(BASE_OUTPUT_DIR = BASE_OUTPUT_DIR)
+	script:
+		"scripts/parse_results_ben.py"
+
+#rule parse_results:
+#	"""
+#	Generates {BASE_OUTPUT_DIR}/results/<analysis_type>.csv by parsing ALL output files in {BASE_OUTPUT_DIR}/out, 
+#	All out/ files will be parsed, even if they where not generated in this run of the workflow
+#	"""
+#	output:
+#		"{BASE_OUTPUT_DIR}/results/{analysis_type}.csv"
+#	conda:
+#		"envs/cellectpy3.yml"
+#	params:
+#		base_output_dir = BASE_OUTPUT_DIR,
+#		analysis_type = wildcards.analysis_type
+#	#script:
+#	#	"scripts/parse_results.py"
+#	shell:
+#		"
+#		
+#		"
 
