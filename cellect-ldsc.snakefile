@@ -147,6 +147,13 @@ RUN_PREFIXES = list(SPECIFICITY_INPUT.keys())
 # as lists where the key is the assigned run prefix
 ANNOTATIONS_DICT = get_annots(SPECIFICITY_INPUT)
 
+wildcard_constraints:
+	chromosomes = "\d+",
+	BASE_OUTPUT_DIR = BASE_OUTPUT_DIR,
+	run_prefix = r"|".join(set(SPECIFICITY_INPUT.keys())),
+	annotations = r"|".join(set(ANNOTATIONS_DICT)),
+	gwas = r"|".join(set(GWAS_SUMSTATS.keys()))
+
 
 
 ########################################################################################
@@ -443,7 +450,8 @@ else: # Use SNPs in a fixed window size around genes
 		Make the annotation files used to generate LD scores from multigeneset files
 		'''
 		input:
-			lambda wildcards: expand("{{BASE_OUTPUT_DIR}}/precomputation/{{run_prefix}}/bed/{{run_prefix}}.{annotation}.bed",
+			lambda wildcards: expand("{BASE_OUTPUT_DIR}/precomputation/{{run_prefix}}/bed/{{run_prefix}}.{annotation}.bed",
+					BASE_OUTPUT_DIR = BASE_OUTPUT_DIR,
 					annotation = ANNOTATIONS_DICT[wildcards.run_prefix]),
 			expand("{bfile_path}.{chromosome}.bim",
 					bfile_path = BFILE_PATH,
