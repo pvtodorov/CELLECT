@@ -688,14 +688,16 @@ result_files = filter(lambda s: '.csv' not in s, list_target_files)
 
 rule parse_results:
 	"""
-	Generates {BASE_OUTPUT_DIR}/results/<analysis_type>.csv by parsing ALL output files in {BASE_OUTPUT_DIR}/out from this run.
+	Generates {BASE_OUTPUT_DIR}/results/<analysis_type>.csv by parsing ALL output files in {BASE_OUTPUT_DIR}/out.
 	"""
 	input:
-		result_files
+		result_files #I don't know if this is strictly necessary, but I want to make sure that the .csv files are generated AFTER the analysis 
 	output:
 		expand("{BASE_OUTPUT_DIR}/results/{analysis_type}.csv", BASE_OUTPUT_DIR = BASE_OUTPUT_DIR, analysis_type = analysis_types_performed)
 	params:
-		results_out_dir = '{BASE_OUTPUT_DIR}/results'.format(BASE_OUTPUT_DIR = BASE_OUTPUT_DIR)
+		BASE_OUTPUT_DIR = BASE_OUTPUT_DIR,
+		results_out_dir = '{BASE_OUTPUT_DIR}/results'.format(BASE_OUTPUT_DIR = BASE_OUTPUT_DIR),
+		analysis_types_performed = analysis_types_performed
 	script:
 		"scripts/parse_results_ben.py"
 
@@ -710,7 +712,7 @@ rule parse_results:
 #		"envs/cellectpy3.yml"
 #	params:
 #		base_output_dir = BASE_OUTPUT_DIR,
-#		analysis_type = wildcards.analysis_type
+#		
 #	#script:
 #	#	"scripts/parse_results.py"
 #	shell:
