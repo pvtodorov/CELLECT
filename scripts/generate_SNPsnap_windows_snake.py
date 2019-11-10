@@ -5,6 +5,10 @@ from time import gmtime, strftime
 
 #TODO: missing file file
 
+
+###################################### FUNCTIONS ######################################
+
+
 def read_SNP_gene_file(SNPs_to_genes_dir, chromosome, input_bim_path):
 	'''
 	Reads in the SNPs and genes file for a given chromosome
