@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def format_genes(gene_coord_df, chr_sizes_df, out_dir, out_prefix, windowsize_kb, print_log_files=True):
+def format_genes(gene_coord_df, chr_sizes_df, out_dir, windowsize_kb, print_log_files=True):
 	""" 
 	Adds a fixed-size window to each protein-coding gene in the human genome.
 
@@ -9,7 +9,6 @@ def format_genes(gene_coord_df, chr_sizes_df, out_dir, out_prefix, windowsize_kb
 		gene_coord_df: Locations of all human genes in hg19
 		chr_sizes_df: Sizes of hg19 human autosomes and sex chromosomes
 		out_dir: Where the output BED file will be saved
-		out_prefix: BED file prefix
 	Output
 
 	"""
@@ -32,7 +31,7 @@ def format_genes(gene_coord_df, chr_sizes_df, out_dir, out_prefix, windowsize_kb
 
 	# Save
 	for chrom_num in chr_sizes_dict.keys():
-		chrom_df = gene_window_df[gene_window_df['CHR'] == chrom_num]
+		chrom_df = gene_coord_df[gene_coord_df['CHR'] == chrom_num]
 		chrom_df = chrom_df[['CHR','START','END','GENE']]
 		chrom_df.to_csv('{out_dir}/genes_plus_{window}kb.{chr}.bed'.format(out_dir = out_dir,
 																			window = windowsize_kb,
@@ -45,11 +44,14 @@ snake_log_obj = snakemake.log # class(snakemake.log) = 'snakemake.io.Log
 sys.stdout = open(str(snake_log_obj), "w") # could not find better ways than calling str(snake_log_obj) to get the log filepath
 
 
-gene_coords = snakemake.params['gene_coords']
 windowsize_kb = snakemake.params['windowsize_kb']
 bed_out_dir = snakemake.params['bed_out_dir']
-out_prefix = snakemake.params['run_prefix']
 
-df_gene_coords = pd.read_csv(gene_coords, delim_whitespace = True, index_col=None)
-format_genes(gene_coord_df, chr_sizes_df, bed_out_dir, out_prefix)
+
+gene_coords = snakemake.input['gene_coords']
+chr_sizes = snakemake.input['chr_sizes']
+
+gene_coords_df = pd.read_csv(gene_coords, delim_whitespace = True, index_col=None)
+chr_sizes_df = pd.read_csv(chr_sizes, delim_whitespace = True, index_col=0, header=None)
+format_genes(gene_coords_df, chr_sizes_df, bed_out_dir, windowsize_kb)
 # multi_gene_sets_to_dict_of_beds(df_multi_gene_set_human, df_gene_coords, windowsize, bed_out_dir + '/tmp', bed_out_dir, out_prefix)

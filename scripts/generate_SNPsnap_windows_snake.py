@@ -5,28 +5,6 @@ from time import gmtime, strftime
 
 #TODO: missing file file
 
-def read_ES_gene_file(multi_gene_set_path):
-	'''
-	Takes a path to a multigeneset as input and returns two panda dataframes of the files needed.
-	Args:
-		multi_gene_set_path (str): The path to a multigeneset file.
-	Returns:
-		A dataframe where annotations are columns and genes are rows.
-	'''
-	# This function seems redundant now we take a matrix as input - I go from matrix -> long format -> matrix again here
-
-	# Reading the gene to ES file into a panda dataframe
-	genes_to_ES = pd.read_csv(multi_gene_set_path, sep='\t',
-		names=['annotation','gene', 'annotation_value'])
-
-	# Changing the orientation of the gene-to-ES file so that the cell types are the columns,
-	# the genes are the rows and the specificities are the values
-	genes_to_ES.sort_values('gene', inplace=True)
-	genes_to_ES_pivot = genes_to_ES.pivot(index='gene', columns='annotation',
-		values='annotation_value')
-
-	return(genes_to_ES_pivot)
-
 def read_SNP_gene_file(SNPs_to_genes_dir, chromosome, input_bim_path):
 	'''
 	Reads in the SNPs and genes file for a given chromosome
@@ -103,7 +81,7 @@ def create_annot_file_per_chromosome(chromosome, run_prefix, precomp_dir, bim_pa
 
 ###################################### MAIN ######################################
 
-genes_and_ES = read_ES_gene_file(snakemake.input[0])
+genes_and_ES = pd.read_csv((snakemake.input[0], index_col='gene')
 chromosome = snakemake.params['chromosome']
 run_prefix = snakemake.params['run_prefix']
 precomp_dir = snakemake.params['precomp_dir']

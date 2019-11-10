@@ -64,7 +64,7 @@ def get_max_ES_vals(overlap_df, cell_type_ES_dict):
     return(segment_df)
 
 
-def map_ES_values_to_genes(specificity_df, chr_overlap_df)
+def map_ES_values_to_genes(chr_overlap_df, specificity_df):
 
 	# Create a nested dictionary structure where the keys are cell-types and the values
 	# are also dictionaries. The second level of dictionaries has genes as keys and expression
@@ -73,14 +73,14 @@ def map_ES_values_to_genes(specificity_df, chr_overlap_df)
 	# 'ACMB': {'ENSG00000141668': 0.0, 'ENSG00000204624': 0.949798, 'ENSG00000187848': 0.0, ... },
 	# ... }
 	ES_dict = {}
-	for cell_type in spec_matrix_df.columns:
-		ES_dict[cell_type] = spec_matrix_df[cell_type].to_dict()
+	for cell_type in specificity_df.columns:
+		ES_dict[cell_type] = specificity_df[cell_type].to_dict()
 	
 	# Create a dictionary with cell-types as keys and BedTools as values
 	max_ES_vals_dict = {}
-	for cell_type in spec_matrix_df.columns:
+	for cell_type in specificity_df.columns:
 		cell_type_ES_dict = ES_dict[cell_type]
-		max_ES_vals_dict[cell_type] = pybedtools.bedtool.BedTool.from_dataframe(get_max_ES_vals(chr19_overlap, cell_type_ES_dict))
+		max_ES_vals_dict[cell_type] = pybedtools.bedtool.BedTool.from_dataframe(get_max_ES_vals(chr_overlap_df, cell_type_ES_dict))
 	
 	return(max_ES_vals_dict)
 
@@ -251,6 +251,7 @@ def make_annot_file_per_chromosome(chromosome, dict_of_beds, out_dir, out_prefix
 	print("CHR={} | Writing annotations...".format(chromosome))
 	if all_genes == True:
 		file_out_annot_combined = "{}/all_genes_in_{}.{}.annot.gz".format(out_dir, out_prefix, chromosome)
+		print(file_out_annot_combined)
 	else:
 		file_out_annot_combined = "{}/{}.{}.{}.annot.gz".format(out_dir, out_prefix, "COMBINED_ANNOT", chromosome)
 
@@ -275,8 +276,10 @@ annotations = snakemake.params['annotations']
 all_genes = snakemake.params['all_genes']
 
 bimfile = snakemake.input['chrom_bfile']
-overlap_df = pd.read_csv(snakemake.input['overlap_segments'])
-specificity_df = pd.read_csv(snakemake.input['spec_matrix'])
+overlap_df = pd.read_csv(snakemake.input['overlap_segments'], delim_whitespace = True,names=['CHR', 'START', 'END', 'GENES'])
+print(overlap_df)
+print(snakemake.input['overlap_segments'])
+specificity_df = pd.read_csv(snakemake.input['spec_matrix'], index_col='gene')
 
 dict_of_beds = map_ES_values_to_genes(overlap_df, specificity_df)
 
